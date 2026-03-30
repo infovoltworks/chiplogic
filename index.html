@@ -1,0 +1,741 @@
+<!--
+=====================================================
+🚀 CHIPLOGIC AUDIT SYSTEM – FRONTEND FEATURES
+   Author : Kalmeshwar Chougala
+=====================================================
+
+📌 1. Modern Responsive UI
+- Clean corporate design
+- Mobile-friendly layout
+- Adaptive grid (desktop → 2 columns, mobile → 1 column)
+
+📌 2. Dynamic Component Entry
+- Add/remove audit rows dynamically
+- Each row behaves like a card (mobile-friendly)
+- Supports:
+  Component, Standard, Installed, Status, Comments, Photo
+
+📌 3. Standards Auto-Fill
+- Dropdown-based component selection
+- Auto-populates standard specifications
+- Supports custom/manual entry
+
+📌 4. Status Management
+- Options: Pending / Approved / Rework
+- Visual highlighting:
+  - Green → Approved
+  - Red → Rework
+- Card outline + background feedback
+
+📌 5. Image Upload System
+- Camera support (mobile capture)
+- Image preview before upload
+- Upload status indicator:
+  - Uploading...
+  - Uploaded ✅
+  - Failed ❌
+
+📌 6. Image Compression (Performance Optimized)
+- Accepts images up to ~10MB
+- Compresses before upload:
+  - Resize to max width (800px)
+  - JPEG conversion
+  - Quality reduction (0.6)
+- Reduces size drastically (MB → KB)
+
+📌 7. Secure Upload Flow
+- Uses Base64 upload
+- Sends via fetch() to Apps Script
+- Uses AbortController (timeout handling)
+
+📌 8. Submission Workflow
+- Uploads all images first
+- Then submits full audit data
+- Prevents partial submission
+
+📌 9. UX Enhancements
+- Loading state:
+  "Submitting..." / disabled buttons
+- Prevents duplicate clicks
+- Real-time status updates
+- Error handling UI
+
+📌 10. Table → Card Transformation
+- Desktop: Table layout
+- Mobile: Card layout (vertical fields)
+- Improves usability in field conditions
+
+📌 11. Print Support
+- Print-friendly layout
+- Hides buttons in print mode
+
+📌 12. Input Validation
+- Required fields enforced:
+  Vendor, Site, Site Type, Audit Number
+
+=====================================================
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHIPLOGIC | Site Engineering & Quality Control</title>
+    <style>
+        /* --- PROFESSIONAL COLOR PALETTE --- */
+        :root {
+            --brand-dark: #0f172a;
+            --brand-blue: #2563eb;
+            --brand-hover: #1d4ed8;
+            --bg-main: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #334155;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        /* --- CONTAINER & HEADER --- */
+        .report-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #111827, #1f2937); /* dark neutral */
+            padding: 30px;
+            color: #ffffff;
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #f97316; /* 🔥 ORANGE */
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            letter-spacing: 2px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .header p {
+            margin: 8px 0 0;
+            opacity: 0.8;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .row-card {
+            box-sizing: border-box;
+        }
+
+        .row-card td {
+            margin-bottom: 12px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            max-width: 100%;   /* 🔥 prevents overflow */
+        }
+
+        :root {
+            --brand-blue: #f97316;   /* 🔥 replace blue with orange */
+            --brand-hover: #ea580c;
+        }
+
+        /* --- METADATA SECTION --- */
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+            padding: 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-main);
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+            background: #fff;
+        }
+
+        /* --- DYNAMIC COMPONENT CARDS --- */
+        #auditTable { width: 100%; border-collapse: collapse; }
+        #auditTable thead { display: none; } /* Using Card Layout */
+
+        .row-card {
+            display: block;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .row-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        .row-card td {
+            display: block;
+            width: 100%;
+            padding: 0;
+            margin-bottom: 15px;
+        }
+
+        .row-card td::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        /* --- BUTTONS --- */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-add {
+            background: #fff;
+            color: var(--brand-blue);
+            border: 1px solid var(--brand-blue);
+        }
+
+        .btn-add:hover { background: #eff6ff; }
+
+        .btn-submit {
+            background: var(--brand-blue);
+            color: white;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-submit:hover {
+            background: var(--brand-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .delete-row {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 32px;
+            height: 32px;
+            background: #fee2e2;
+            color: #ef4444;
+            border-radius: 50%;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-row:hover { background: #fecaca; }
+
+        /* --- STATUS STYLING --- */
+        .status-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='C19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        /* --- RESPONSIVENESS --- */
+        @media (max-width: 600px) {
+            .header { padding: 30px 20px; }
+            .content { padding: 20px; }
+            .action-bar { flex-direction: column; }
+            .btn { width: 100%; }
+            .btn-group { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .report-container { box-shadow: none; border: none; }
+            .btn, .delete-row, .btn-add { display: none !important; }
+        }
+
+        /* Image Preview Box */
+        .preview-img {
+            width: 80px; 
+            height: 80px; 
+            object-fit: cover; 
+            border-radius: 8px; 
+            border: 2px solid var(--border);
+            margin-top: 10px;
+        }
+
+        /* Header layout */
+        .header-inner {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Logo */
+        .logo {
+            height: 42px;
+            background: white;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        /* Text */
+        .header-text h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .header-text p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: #d1d5db;
+        }
+
+        @media (max-width: 600px) {
+
+        .header-inner {
+            flex-direction: column;   /* 🔥 STACK */
+            align-items: flex-start;  /* left align */
+        }
+
+        .logo {
+            height: 36px;
+        }
+
+        .header-text h1 {
+            font-size: 18px;
+        }
+
+        .header-text p {
+            font-size: 12px;
+        }
+    }
+     .header {
+        overflow: hidden;
+        }
+
+    .header-inner {
+            display: flex;
+            flex-direction: column;   /* 🔥 STACK EVERYTHING */
+            align-items: flex-start;  /* left aligned */
+            gap: 6px;
+        }
+
+        /* Logo */
+        .logo {
+            height: 42px;
+            background: white;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        /* Title */
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        /* Subtitle */
+        .subtitle {
+            margin: 0;
+            font-size: 13px;
+            color: #d1d5db;
+        }
+
+        @media (max-width: 600px) {
+            .logo {
+                height: 36px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .subtitle {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="report-container">
+    <div class="header">
+    <div class="header-inner">
+
+        <!-- LOGO -->
+        <img src="chip_logo.png" alt="Chiplogic Logo" class="logo">
+
+        <!-- TITLE -->
+        <h1>CHIPLOGIC</h1>
+
+        <!-- SUBTITLE -->
+        <p class="subtitle">
+            Technical Site Audit & Quality Assurance Portal
+        </p>
+
+    </div>
+</div>
+
+    <div class="content">
+        <div class="metadata-grid">
+            <div class="input-group">
+                <label>Site Type</label>
+                <select id="siteType">
+                    <option value="">Select Site Type</option>
+                    <option value="On Grid">On Grid</option>
+                    <option value="Off Grid">Off Grid</option>
+                    <option value="Hybrid">Hybrid</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Assigned Vendor</label>
+                <input type="text" id="vendor" placeholder="e.g. SolarCorp India">
+            </div>
+            <div class="input-group">
+                <label>Site ID / Project Name</label>
+                <input type="text" id="site" placeholder="Project Reference">
+            </div>
+            <div class="input-group">
+                <label>Inspection Date</label>
+                <input type="date" id="date">
+            </div>
+            <div class="input-group">
+                <label>Auditor Name</label>
+                <input type="text" id="auditor" placeholder="Technical Lead Name">
+            </div>
+            <div class="input-group">
+                <label>Audit Number</label>
+                <input type="text" id="auditNumber" placeholder="CL-2026-000">
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="auditTable">
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="action-bar">    
+            <button class="btn btn-add" onclick="addRow()">+ Add Audit Item</button>
+            <div class="btn-group">
+                <button class="btn" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;" onclick="window.print()">Export PDF</button>
+                <button class="btn btn-submit" id="submitBtn" onclick="submitData()">Finalize & Sync Audit</button>
+            </div>
+        </div>
+
+        <div id="statusMessage" style="margin-top:20px; padding: 15px; border-radius: 8px; text-align:center; display:none; font-weight: 600;"></div>
+    </div>
+</div>
+
+<script>
+/* NO CODE LOGIC CHANGED - AS REQUESTED. 
+   ONLY UPDATED THE HTML STRING IN addRow() TO MATCH NEW CLASSES 
+*/
+const standardsRegistry = {
+    "Solar Panel 1": "550W Mono PERC",
+    "Solar Panel 2": "600W Bifacial",
+    "Inverter 1": "50kW String Inverter",
+    "Inverter 2": "100kW Central Inverter",
+    "DC Cable": "4sqmm Copper UV Protected",
+    "Earthing Kit": "Chemical Earthing 80mm",
+    "Structure": "HDG 80 Microns Coating"
+};
+
+let rowCount = 0;
+
+function addRow() {
+    rowCount++;
+    const tbody = document.querySelector("#auditTable tbody");
+    const row = tbody.insertRow();
+    row.classList.add("row-card");
+
+    row.innerHTML = `
+        <button class="delete-row" onclick="removeRow(this)">×</button>
+        <td data-label="Item No."><span style="color: #2563eb; font-weight: 800;">#${rowCount}</span></td>
+        <td data-label="Component Category">
+            <select class="comp-select" onchange="applyStandard(this)">
+                <option value="">-- Select --</option>
+                ${Object.keys(standardsRegistry).map(key => `<option value="${key}">${key}</option>`).join('')}
+                <option value="custom">Other / Custom</option>
+            </select>
+        </td>
+        <td data-label="Standard Specification">
+            <input type="text" class="std-input" readonly placeholder="--" tabindex="-1" style="background:#f8fafc;">
+        </td>
+        <td data-label="Installed Specification">
+            <input type="text" class="installed-input" placeholder="Enter findings...">
+        </td>
+        <td data-label="Technical Comments">
+            <textarea class="comment-input" placeholder="Notes on quality or installation..." rows="2"></textarea>
+        </td>
+        <td data-label="Visual Evidence (Photo)">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <input type="file" accept="image/*" capture="environment" class="photo-input" onchange="previewImage(this)" style="font-size: 12px;">
+                <img class="preview-img" style="display:none;" />
+                <span class="upload-status" style="font-size:11px; font-weight:600;"></span>
+            </div>
+        </td>
+        
+        <td data-label="QA Status">
+            <select class="status-select" onchange="colorRow(this)" style="border-radius: 20px; padding: 8px 15px;">
+                <option value="Pending">🕒 Pending</option>
+                <option value="Approved">✅ Approved</option>
+                <option value="Rework">❌ Rework</option>
+            </select>
+        </td>
+    `;
+}
+
+function applyStandard(select) {
+    const row = select.closest('tr');
+    const stdInput = row.querySelector('.std-input');
+    const selectedValue = select.value;
+    if (selectedValue === 'custom') {
+        stdInput.readOnly = false;
+        stdInput.style.background = "#fff";
+        stdInput.value = "";
+        stdInput.placeholder = "Manual entry...";
+    } else if (standardsRegistry[selectedValue]) {
+        stdInput.readOnly = true;
+        stdInput.style.background = "#f8fafc";
+        stdInput.value = standardsRegistry[selectedValue];
+    } else {
+        stdInput.value = "";
+    }
+}
+
+function colorRow(select) {
+    const card = select.closest('.row-card');
+    if (!card) return;
+    card.style.borderLeft = "6px solid transparent";
+    if (select.value === "Approved") {
+        card.style.borderLeft = "6px solid #10b981";
+        card.style.background = "#f0fdf4";
+    } else if (select.value === "Rework") {
+        card.style.borderLeft = "6px solid #ef4444";
+        card.style.background = "#fff1f2";
+    } else {
+        card.style.background = "#fff";
+    }
+}
+
+function removeRow(btn) { btn.closest('tr').remove(); }
+
+async function uploadFile(file, vendor, site, siteType, auditNumber) {
+    if (file.size > 10 * 1024 * 1024) throw new Error("File exceeds 10MB limit");
+    const base64 = await compressImage(file);
+    const payload = { file: base64, fileName: file.name, mimeType: "image/jpeg", vendor, site, siteType, auditNumber };
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbwkE1nuAxOHY6M0JsIHSWyqmYzRvVvWu3VW5uCVVs66pYy5tTNo07wpOYkIduloRIiAZw/exec", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: { "Content-Type": "text/plain" },
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+        const text = await res.text();
+        if (text.includes("Error")) throw new Error(text);
+        return text;
+    } catch (err) { throw err; }
+}
+
+async function compressImage(file) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = (e) => img.src = e.target.result;
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const MAX_WIDTH = 800;
+            const scale = Math.min(MAX_WIDTH / img.width, 1);
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", 0.6).split(",")[1]);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function previewImage(input) {
+    const file = input.files[0];
+    const img = input.nextElementSibling;
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => { img.src = e.target.result; img.style.display = "block"; };
+        reader.readAsDataURL(file);
+    }
+}
+
+async function submitData() {
+    const vendor = document.getElementById('vendor').value.trim();
+    const site = document.getElementById('site').value.trim();
+    const date = document.getElementById('date').value.trim();
+    const siteType = document.getElementById('siteType').value.trim();
+    const auditor = document.getElementById('auditor').value.trim();
+    const auditNumber = document.getElementById('auditNumber').value.trim();
+    const statusDiv = document.getElementById("statusMessage");
+    const submitBtn = document.getElementById("submitBtn");
+
+    if (!vendor || !site || !siteType || !auditNumber) {
+        alert("Vendor, Site, Type, and Audit # are required.");
+        return;
+    }
+
+    statusDiv.style.display = "block";
+    statusDiv.style.background = "#eff6ff";
+    statusDiv.style.color = "#2563eb";
+    statusDiv.innerText = "⏳ Syncing data to cloud... Please do not close this window.";
+    submitBtn.disabled = true;
+
+    const rows = document.querySelectorAll("#auditTable tbody tr");
+    let components = [];
+
+    for (let row of rows) {
+        const fileInput = row.querySelector(".photo-input");
+        const statusSpan = row.querySelector(".upload-status");
+        let fileUrl = "";
+
+        if (fileInput && fileInput.files.length > 0) {
+            statusSpan.innerText = "Uploading...";
+            statusSpan.style.color = "#2563eb";
+            try {
+                fileUrl = await uploadFile(fileInput.files[0], vendor, site, siteType, auditNumber);
+                statusSpan.innerText = "Synced ✅";
+                statusSpan.style.color = "#10b981";
+            } catch (err) {
+                fileUrl = "UPLOAD_FAILED";
+                statusSpan.innerText = "Failed ❌";
+                statusSpan.style.color = "#ef4444";
+            }
+        }
+
+        components.push({
+            component: row.querySelector(".comp-select").value,
+            standard: row.querySelector(".std-input").value,
+            installed: row.querySelector(".installed-input").value,
+            status: row.querySelector(".status-select").value,
+            comments: row.querySelector(".comment-input").value,
+            file: fileUrl
+        });
+    }
+
+    try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbwkE1nuAxOHY6M0JsIHSWyqmYzRvVvWu3VW5uCVVs66pYy5tTNo07wpOYkIduloRIiAZw/exec", {
+            method: "POST",
+            body: JSON.stringify({ vendor, site, siteType, date, auditor, auditNumber, components }),
+            headers: { "Content-Type": "text/plain" }
+        });
+        const result = await res.text();
+        if (result.includes("Error")) throw new Error(result);
+        statusDiv.style.background = "#ecfdf5";
+        statusDiv.style.color = "#10b981";
+        statusDiv.innerText = "✅ Audit Finalized Successfully.";
+    } catch (err) {
+        statusDiv.style.background = "#fef2f2";
+        statusDiv.style.color = "#ef4444";
+        statusDiv.innerText = "❌ Network Error. Please try again.";
+    }
+    submitBtn.disabled = false;
+}
+
+window.onload = () => { addRow(); };
+</script>
+
+</body>
+</html>

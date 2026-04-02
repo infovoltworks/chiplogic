@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>VoltWorks Auth</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: white;
+      padding: 35px 30px;
+      border-radius: 18px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .logo {
+      font-weight: 800;
+      font-size: 20px;
+      color: #0f172a;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      position: relative;
+      margin: 12px 0;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 14px 12px 14px 38px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .input-group label {
+      position: absolute;
+      left: 38px;
+      top: 14px;
+      font-size: 13px;
+      color: #64748b;
+      transition: 0.2s;
+      pointer-events: none;
+      background: white;
+      padding: 0 4px;
+    }
+
+    .input-group input:focus + label,
+    .input-group input:not(:placeholder-shown) + label {
+      top: -7px;
+      font-size: 11px;
+      color: #f97316;
+    }
+
+    .icon {
+      position: absolute;
+      top: 14px;
+      left: 12px;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: white;
+    }
+
+    .secondary-btn {
+      background: #0f172a;
+      color: white;
+    }
+
+    .toggle {
+      margin-top: 15px;
+      font-size: 13px;
+      color: #f97316;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    #msg {
+      margin-top: 12px;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .loader {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #f97316;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-left: 6px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .success {
+      color: #10b981;
+      font-weight: bold;
+    }
+
+    .error {
+      color: #ef4444;
+    }
+  </style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+  <div class="logo">VOLT WORKS</div>
+  <div class="subtitle">Audit & Quality Platform</div>
+
+  <h2 id="title">🔐 Login</h2>
+
+  <!-- LOGIN -->
+
+  <div id="loginBox">
+
+```
+<div class="input-group">
+  <span class="icon">📱</span>
+  <input type="text" id="mobile" placeholder=" ">
+  <label>Mobile Number</label>
+</div>
+
+<button class="primary-btn" onclick="sendOTP()">Send OTP</button>
+
+<div class="input-group">
+  <span class="icon">🔑</span>
+  <input type="text" id="otp" placeholder=" ">
+  <label>Enter OTP</label>
+</div>
+
+<button class="secondary-btn" onclick="verifyOTP()">Login</button>
+```
+
+  </div>
+
+  <!-- REGISTER -->
+
+  <div id="registerBox" class="hidden">
+
+```
+<div class="input-group">
+  <span class="icon">👤</span>
+  <input type="text" id="name" placeholder=" ">
+  <label>Full Name</label>
+</div>
+
+<div class="input-group">
+  <span class="icon">📧</span>
+  <input type="email" id="email" placeholder=" ">
+  <label>Email</label>
+</div>
+
+<div class="input-group">
+  <span class="icon">📱</span>
+  <input type="text" id="mobileReg" placeholder=" ">
+  <label>Mobile Number</label>
+</div>
+
+<button class="primary-btn" onclick="register()">Request Access</button>
+```
+
+  </div>
+
+  <p id="msg"></p>
+
+  <div class="toggle" onclick="toggleMode()">
+    New user? Request Access
+  </div>
+
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbwkE1nuAxOHY6M0JsIHSWyqmYzRvVvWu3VW5uCVVs66pYy5tTNo07wpOYkIduloRIiAZw/exec";
+
+let isLogin = true;
+
+function toggleMode() {
+  isLogin = !isLogin;
+
+  document.getElementById("loginBox").classList.toggle("hidden");
+  document.getElementById("registerBox").classList.toggle("hidden");
+
+  document.getElementById("title").innerText = isLogin ? "🔐 Login" : "📝 Request Access";
+
+  document.querySelector(".toggle").innerText = isLogin 
+    ? "New user? Request Access" 
+    : "Already approved? Login";
+
+  document.getElementById("msg").innerText = "";
+}
+
+/* VALIDATION */
+function isValidMobile(m) {
+  return /^[0-9]{10}$/.test(m);
+}
+
+function isValidEmail(e) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
+
+/* LOGIN */
+async function sendOTP() {
+  const mobile = document.getElementById("mobile").value;
+  const msg = document.getElementById("msg");
+
+  if (!isValidMobile(mobile)) {
+    msg.innerHTML = "<span class='error'>Enter valid mobile</span>";
+    return;
+  }
+
+  msg.innerHTML = "Sending <span class='loader'></span>";
+
+  const res = await fetch(API, {
+    method: "POST",
+    body: JSON.stringify({ action: "sendOTP", mobile })
+  });
+
+  const text = await res.text();
+
+  msg.innerHTML = text === "OTP_SENT"
+    ? "<span class='success'>OTP sent</span>"
+    : "<span class='error'>" + text + "</span>";
+}
+
+async function verifyOTP() {
+  const mobile = document.getElementById("mobile").value;
+  const otp = document.getElementById("otp").value;
+  const msg = document.getElementById("msg");
+
+  msg.innerHTML = "Verifying <span class='loader'></span>";
+
+  const res = await fetch(API, {
+    method: "POST",
+    body: JSON.stringify({ action: "verifyOTP", mobile, otp })
+  });
+
+  const text = await res.text();
+
+  if (text === "LOGIN_SUCCESS") {
+    localStorage.setItem("userLoggedIn", "true");
+    localStorage.setItem("userMobile", mobile);
+
+    msg.innerHTML = "<span class='success'>Welcome!</span>";
+
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 800);
+
+  } else {
+    msg.innerHTML = "<span class='error'>" + text + "</span>";
+  }
+}
+
+/* REGISTER */
+async function register() {
+  const name = document.getElementById("name").value;
+  const email = document.getElementById("email").value;
+  const mobile = document.getElementById("mobileReg").value;
+  const msg = document.getElementById("msg");
+
+  if (!name) {
+    msg.innerHTML = "<span class='error'>Enter name</span>";
+    return;
+  }
+
+  if (!isValidEmail(email)) {
+    msg.innerHTML = "<span class='error'>Invalid email</span>";
+    return;
+  }
+
+  if (!isValidMobile(mobile)) {
+    msg.innerHTML = "<span class='error'>Invalid mobile</span>";
+    return;
+  }
+
+  msg.innerHTML = "Submitting <span class='loader'></span>";
+
+  const res = await fetch(API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "register",
+      name,
+      email,
+      mobile
+    })
+  });
+
+  const text = await res.text();
+
+  msg.innerHTML = text === "REGISTERED"
+    ? "<span class='success'>Request sent</span>"
+    : "<span class='error'>" + text + "</span>";
+}
+
+// 🔥 Always reset to login on reload
+window.onload = function () {
+  isLogin = true;
+
+  document.getElementById("loginBox").classList.remove("hidden");
+  document.getElementById("registerBox").classList.add("hidden");
+
+  document.getElementById("title").innerText = "🔐 Login";
+  document.querySelector(".toggle").innerText = "New user? Request Access";
+
+  document.getElementById("msg").innerText = "";
+};
+</script>
+
+</body>
+</html>

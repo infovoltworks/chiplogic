@@ -878,7 +878,27 @@ async function submitData() {
     submitBtn.disabled = false;
 }
 
-window.onload = () => { addRow(); };
+    window.onload = () => { addRow(); };
+
+    let idleTimer;
+    const TIME_LIMIT = 30 * 60 * 1000; // 30 minutes
+
+    function resetTimer() {
+    clearTimeout(idleTimer);
+
+    idleTimer = setTimeout(() => {
+        alert("Session expired due to inactivity");
+        logout(); // your existing logout function
+    }, TIME_LIMIT);
+    }
+
+    // Track user activity
+    ["click", "mousemove", "keypress", "scroll", "touchstart"].forEach(event => {
+    window.addEventListener(event, resetTimer);
+    });
+
+    // Start timer on load
+    resetTimer();
 </script>
 
 </body>

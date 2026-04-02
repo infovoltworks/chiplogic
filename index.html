@@ -505,6 +505,14 @@
             justify-content: center;   /* ✅ center logo + text */
             flex-direction: column;
         }
+        @media (max-width: 600px) {
+        button[onclick="logout()"] {
+            top: 10px;
+            right: 10px;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        }
 
         @media (max-width: 600px) {
             .logo {
@@ -534,6 +542,22 @@
 <body>
 <div class="report-container">   
     <div class="header">
+    <!-- 🔴 ADD THIS BUTTON HERE -->
+    <button onclick="logout()" style="
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 8px 14px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      z-index: 10;
+    ">
+      Logout
+    </button>
+
         <div class="header-inner">
             <!-- Logo + Title Row -->
             <div class="header-top">
@@ -604,6 +628,10 @@
 /* NO CODE LOGIC CHANGED - AS REQUESTED. 
    ONLY UPDATED THE HTML STRING IN addRow() TO MATCH NEW CLASSES 
 */
+
+if (!localStorage.getItem("userLoggedIn")) {
+  window.location.href = "login.html";
+}
 const standardsRegistry = {
     "Solar Panel 1": "550W Mono PERC",
     "Solar Panel 2": "600W Bifacial",
@@ -707,11 +735,24 @@ async function uploadFile(file, vendor, site, siteType, auditNumber) {
             headers: { "Content-Type": "text/plain" },
             signal: controller.signal
         });
+
         clearTimeout(timeout);
+
+        if (!res.ok) throw new Error("Server error");
+
         const text = await res.text();
-        if (text.includes("Error")) throw new Error(text);
+
+        if (!text || text.includes("Error")) {
+            throw new Error("Upload failed");
+        }
+
         return text;
-    } catch (err) { throw err; }
+
+    } catch (err) {
+        clearTimeout(timeout);
+        console.error("UPLOAD ERROR:", err);
+        throw err;
+    }
 }
 
 async function compressImage(file) {
@@ -743,6 +784,13 @@ function previewImage(input) {
     }
 }
 
+function logout() {
+  if (confirm("Are you sure you want to logout?")) {
+    localStorage.clear();
+    window.location.href = "login.html";
+  }
+}
+
 async function submitData() {
     const vendor = document.getElementById('vendor').value.trim();
     const site = document.getElementById('site').value.trim();
@@ -757,6 +805,8 @@ async function submitData() {
         alert("Vendor, Site, Type, and Audit # are required.");
         return;
     }
+    
+ 
 
     statusDiv.style.display = "block";
     statusDiv.style.background = "#eff6ff";
@@ -765,6 +815,10 @@ async function submitData() {
     submitBtn.disabled = true;
 
     const rows = document.querySelectorAll("#auditTable tbody tr");
+       if (rows.length === 0) {
+        alert("Add at least one audit item");
+        return;
+        }
     let components = [];
 
     for (let row of rows) {
@@ -802,15 +856,24 @@ async function submitData() {
             body: JSON.stringify({ vendor, site, siteType, date, auditor, auditNumber, components }),
             headers: { "Content-Type": "text/plain" }
         });
+
+        if (!res.ok) throw new Error("Server error");
+
         const result = await res.text();
-        if (result.includes("Error")) throw new Error(result);
+
+        if (!result || result.includes("Error")) {
+            throw new Error("Submission failed");
+        }
+
         statusDiv.style.background = "#ecfdf5";
         statusDiv.style.color = "#10b981";
         statusDiv.innerText = "✅ Audit Finalized Successfully.";
+
     } catch (err) {
+        console.error(err);
         statusDiv.style.background = "#fef2f2";
         statusDiv.style.color = "#ef4444";
-        statusDiv.innerText = "❌ Network Error. Please try again.";
+        statusDiv.innerText = "❌ Network or Server Error. Try again.";
     }
     submitBtn.disabled = false;
 }

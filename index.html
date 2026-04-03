@@ -542,22 +542,6 @@
 <body>
 <div class="report-container">   
     <div class="header">
-    <!-- 🔴 ADD THIS BUTTON HERE -->
-    <button onclick="logout()" style="
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 8px 14px;
-      background: #ef4444;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      z-index: 10;
-    ">
-      Logout
-    </button>
-
         <div class="header-inner">
             <!-- Logo + Title Row -->
             <div class="header-top">
@@ -628,10 +612,23 @@
 /* NO CODE LOGIC CHANGED - AS REQUESTED. 
    ONLY UPDATED THE HTML STRING IN addRow() TO MATCH NEW CLASSES 
 */
+const loginTime = sessionStorage.getItem("loginTime");
 
-if (!localStorage.getItem("userLoggedIn")) {
+if (!localStorage.getItem("userLoggedIn") || !loginTime) {
   window.location.href = "login.html";
+} else {
+  const now = new Date().getTime();
+  const diff = now - parseInt(loginTime);
+
+  const MAX_TIME = 30 * 60 * 1000; // 30 minutes
+
+  if (diff > MAX_TIME) {
+    sessionStorage.clear();
+    window.location.href = "login.html";
+  }
 }
+
+
 const standardsRegistry = {
     "Solar Panel 1": "550W Mono PERC",
     "Solar Panel 2": "600W Bifacial",
@@ -881,7 +878,22 @@ async function submitData() {
     window.onload = () => { addRow(); };
 
     let idleTimer;
-    const TIME_LIMIT = 30 * 60 * 1000; // 30 minutes
+    setInterval(() => {
+    const loginTime = localStorage.getItem("loginTime");
+
+    if (loginTime) {
+        const now = new Date().getTime();
+        const diff = now - parseInt(loginTime);
+
+        const MAX_TIME = 30 * 60 * 1000;
+
+        if (diff > MAX_TIME) {
+        alert("Session expired");
+        localStorage.clear();
+        window.location.href = "login.html";
+        }
+    }
+    }, 60000); // every 1 minute
 
     function resetTimer() {
     clearTimeout(idleTimer);

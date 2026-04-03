@@ -246,10 +246,6 @@
             width: 100%;
             max-width: 100%;   /* 🔥 prevents overflow */
         }
-        :root {
-            --brand-blue: #f97316;
-            --brand-hover: #ea580c;
-        }
         /* --- METADATA SECTION --- */
         .metadata-grid {
             display: grid;
@@ -537,6 +533,15 @@
                 width: 100%;
             }
         }
+
+        body {
+        opacity: 0;
+        transition: opacity 0.4s ease;
+        }
+
+        body.fade-in {
+        opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -612,21 +617,44 @@
 /* NO CODE LOGIC CHANGED - AS REQUESTED. 
    ONLY UPDATED THE HTML STRING IN addRow() TO MATCH NEW CLASSES 
 */
-const loginTime = sessionStorage.getItem("loginTime");
+// 🔐 Session check
+function navigateTo(url) {
+  document.body.classList.remove("fade-in");
 
-if (!localStorage.getItem("userLoggedIn") || !loginTime) {
-  window.location.href = "login.html";
+  setTimeout(() => {
+    window.location.href = url;
+  }, 300);
+}
+const loginTime = sessionStorage.getItem("loginTime");
+const TIME_LIMIT  = 30 * 60 * 1000;
+
+if (!sessionStorage.getItem("userLoggedIn") || !loginTime) {
+  navigateTo("login.html");
 } else {
   const now = new Date().getTime();
   const diff = now - parseInt(loginTime);
 
-  const MAX_TIME = 30 * 60 * 1000; // 30 minutes
-
-  if (diff > MAX_TIME) {
+  if (diff > TIME_LIMIT ) {
+    alert("Session expired. Please login again.");
     sessionStorage.clear();
-    window.location.href = "login.html";
+    navigateTo("login.html");
   }
 }
+
+setInterval(() => {
+  const loginTime = sessionStorage.getItem("loginTime");
+
+  if (loginTime) {
+    const now = new Date().getTime();
+    const diff = now - parseInt(loginTime);
+
+    if (diff > TIME_LIMIT) {
+      alert("Session expired. Please login again.");
+      sessionStorage.clear();
+      navigateTo("login.html");
+    }
+  }
+}, 30000); // every 1 min
 
 
 const standardsRegistry = {
@@ -783,8 +811,8 @@ function previewImage(input) {
 
 function logout() {
   if (confirm("Are you sure you want to logout?")) {
-    localStorage.clear();
-    window.location.href = "login.html";
+    sessionStorage.clear();
+    navigateTo("login.html");
   }
 }
 
@@ -875,32 +903,14 @@ async function submitData() {
     submitBtn.disabled = false;
 }
 
-    window.onload = () => { addRow(); };
 
     let idleTimer;
-    setInterval(() => {
-    const loginTime = localStorage.getItem("loginTime");
-
-    if (loginTime) {
-        const now = new Date().getTime();
-        const diff = now - parseInt(loginTime);
-
-        const MAX_TIME = 30 * 60 * 1000;
-
-        if (diff > MAX_TIME) {
-        alert("Session expired");
-        localStorage.clear();
-        window.location.href = "login.html";
-        }
-    }
-    }, 60000); // every 1 minute
-
     function resetTimer() {
     clearTimeout(idleTimer);
 
     idleTimer = setTimeout(() => {
-        alert("Session expired due to inactivity");
-        logout(); // your existing logout function
+        alert("Session expired. Please login again.");
+        logout();
     }, TIME_LIMIT);
     }
 
@@ -909,8 +919,14 @@ async function submitData() {
     window.addEventListener(event, resetTimer);
     });
 
+    window.addEventListener("load", () => {
+    addRow();                      // adds first audit row
+    document.body.classList.add("fade-in");  // animation
+    });
+
     // Start timer on load
     resetTimer();
+
 </script>
 
 </body>

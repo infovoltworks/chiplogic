@@ -287,8 +287,9 @@ async function verifyOTP() {
   const text = await res.text();
 
   if (text === "LOGIN_SUCCESS") {
-    localStorage.setItem("userLoggedIn", "true");
-    localStorage.setItem("userMobile", mobile);
+    sessionStorage.setItem("userLoggedIn", "true");
+    sessionStorage.setItem("userMobile", mobile);
+    sessionStorage.setItem("loginTime", new Date().getTime());
 
     msg.innerHTML = "<span class='success'>Welcome!</span>";
 
@@ -341,19 +342,6 @@ async function register() {
     ? "<span class='success'>Request sent</span>"
     : "<span class='error'>" + text + "</span>";
 }
-
-// 🔥 Always reset to login on reload
-window.onload = function () {
-  isLogin = true;
-
-  document.getElementById("loginBox").classList.remove("hidden");
-  document.getElementById("registerBox").classList.add("hidden");
-
-  document.getElementById("title").innerText = "🔐 Login";
-  document.querySelector(".toggle").innerText = "New user? Request Access";
-
-  document.getElementById("msg").innerText = "";
-};
 </script>
 
 </body>
